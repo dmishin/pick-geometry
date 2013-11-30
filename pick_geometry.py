@@ -1,11 +1,33 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 import sys
+import os
+import subprocess
+import tempfile
+
 if sys.version_info >= (3, 0):
     from tkinter import Tk, Frame, Canvas, NW
 else:
     from Tkinter import Tk, Frame, Canvas, NW
 from PIL import ImageTk, Image
+
+def is_video_file( fname ):
+    _, ext = os.path.splitext(fname)
+    return ext.lower() in (".mp4",".avi",".mov",".mkv")
+
+def ffmpeg_make_screenshot( video_file, save_as, time=5.0 ):
+    #ffmpeg -loglevel error -i $1 -ss 00:00:5.0 -f image2 -vframes 1 ${tmpfile} 
+    time_str="00:00:%g"%(time)
+    args = ["ffmpeg",
+            "-loglevel", "error", 
+            "-i", video_file, 
+            "-ss", time_str,
+            "-f", "image2",
+            "-vframes", "1",
+            save_as ]
+    rval = subprocess.call( args )
+    if rval != 0:
+        raise ValueError("FFMPEG invocation failed")
 
 class GUI:
     def __init__(self):
@@ -124,6 +146,11 @@ def main():
     if options.format:
         g.format_str = options.format
     g.scale = options.scale/100.0
+
+    fname = args[0]
+    if is_video_file(fname):
+        tempdir=tempfile.mkdtemp("","pg")
+        outfile = os.path.join(tempdir, "
     g.run(args[0] )
 
 if __name__=="__main__":
