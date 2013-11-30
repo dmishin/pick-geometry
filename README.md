@@ -27,7 +27,7 @@ Options allow to modify program operation.
 
   -f FMT, --format=FMT  
 
- Format string, allowing to override default format. Must be a string, containing one of the following placeholders:
+Format string, allowing to override default format. Must be a string, containing one of the following placeholders:
  
  {x1},{y1},{x2},{y2}: Replaced by corner coordinates.
  {w},{h}: Replaced by box size.
@@ -39,12 +39,29 @@ Default format is "{x1}:{y1}:{w}:{h}".
 
  Scale loaded image, in percents. Default is 100. Selection coordinates are returned in the original pixels. I.e. if you set scale to 50 and select 10x10 box, 20x20 will be returned.
 
+Video support:
+
+  -t SECONDS, --time=SECONDS
+
+For video files, specifies time to take a screenshot, in seconds. Floating-point value.
+
+  -v, --video           
+
+Override default vide detection heuristics, forsing treating file as video.
+
+  --ffmpeg=PATH
+
+Override path to the FFMPEG executable
+
+
+
 Requirements
 ------------
 
 * Python 2.7+ or Python 3.
 * Pillow (or PIL) - image library for Python.
 * Tkinter - standard Python GUI library.
+* FFMPEG (optional) - for taking screenshots of video files
 
 Running the program
 -------------------

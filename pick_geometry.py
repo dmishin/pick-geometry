@@ -4,6 +4,7 @@ import sys
 import os
 import subprocess
 import tempfile
+from math import floor
 
 if sys.version_info >= (3, 0):
     from tkinter import Tk, Frame, Canvas, NW
@@ -12,22 +13,28 @@ else:
 from PIL import ImageTk, Image
 
 def is_video_file( fname ):
+    """Tries to guess, whether the file is video or not"""
     _, ext = os.path.splitext(fname)
-    return ext.lower() in (".mp4",".avi",".mov",".mkv")
+    return ext.lower() in (".mp4",".avi",".mov",".mkv",".ogg",".ogv", ".mpg", ".3gp", ".ogm", ".v8")
 
-def ffmpeg_make_screenshot( video_file, save_as, time=5.0 ):
+def ffmpeg_make_screenshot( video_file, save_as, time=5.0, ffmpeg_executable="ffmpeg" ):
+    """Create a screensot of the video, using FFMPEG"""
     #ffmpeg -loglevel error -i $1 -ss 00:00:5.0 -f image2 -vframes 1 ${tmpfile} 
-    time_str="00:00:%g"%(time)
-    args = ["ffmpeg",
+    time_str="%d:%d:%g"%(floor(time/3600), floor(time/60), time % 60)
+    args = [ffmpeg_executable,
             "-loglevel", "error", 
             "-i", video_file, 
             "-ss", time_str,
             "-f", "image2",
             "-vframes", "1",
             save_as ]
-    rval = subprocess.call( args )
-    if rval != 0:
-        raise ValueError("FFMPEG invocation failed")
+    try:
+        rval = subprocess.call( args )
+        if rval != 0:
+            raise ValueError("FFMPEG invocation failed")
+    except FileNotFoundError:
+        print("FFMPEG executable not found")
+        raise
 
 class GUI:
     def __init__(self):
@@ -36,6 +43,7 @@ class GUI:
         self.format_str="{x1}:{y1}:{w}:{h}"
         self.output = None
         self.scale = 1.0
+        self.exit_code = 0
 
     def on_mouse(self, e):
         self.point = (e.x, e.y)
@@ -51,8 +59,9 @@ class GUI:
         tos.append( canvas.create_rectangle(x1+1,y1+1,x2-1,y2-1,outline="white") )
 
     def on_cancel(self,e):
-        """User cancelled"""
-        sys.exit(1)
+        """User cancelled selection"""
+        self.exit_code=1
+        self.root.quit()
 
     def get_box(self):
         if self.point is None: raise ValueError("No selection")
@@ -76,7 +85,7 @@ class GUI:
                 print(result, file=ofile)
         else:
             print (result)
-        sys.exit(0)
+        self.root.quit()
 
     def run(self,fname):
         img = Image.open(fname)
@@ -88,7 +97,7 @@ class GUI:
             img = img.resize((w1,h1))
             w,h = img.size
 
-        t = Tk()
+        self.root = t = Tk()
         t.bind("<Escape>", self.on_cancel)
         t.bind("q", self.on_cancel)
         t.bind("<Return>", self.on_ok)
@@ -119,6 +128,12 @@ def main():
 
     parser.add_option("-o", "--output", dest="output",
                       help="write answer to the output file instead of STDOUT (default)", metavar="FILE")
+    parser.add_option("-t", "--time", dest="time", type=float, default=5.0,
+                      help="when video file is given, takes screenshot at this time, in secons.", metavar="SECONDS")
+    parser.add_option("-v", "--video", action="store_true", dest="is_video", default=False,
+                      help="force treating file as video")
+    parser.add_option("", "--ffmpeg", dest="ffmpeg_executable", default="ffmpeg", metavar="PATH",
+                      help="Override path to the FFMPEG executable")
     parser.add_option("-f", "--format", dest="format",
                       help="format string. Possible variables: "
                       "{x1},{y1},{x2},{y2}: corner coordinates, "
@@ -148,10 +163,21 @@ def main():
     g.scale = options.scale/100.0
 
     fname = args[0]
-    if is_video_file(fname):
-        tempdir=tempfile.mkdtemp("","pg")
-        outfile = os.path.join(tempdir, "
-    g.run(args[0] )
+    if options.is_video or is_video_file(fname):
+        try:
+            tempdir=tempfile.mkdtemp("","pg")
+            sshot_file = os.path.join(tempdir, "ss.jpg")
+            ffmpeg_make_screenshot(fname, sshot_file, options.time, options.ffmpeg_executable)
+            try:
+                g.run(sshot_file)
+            finally:
+                os.remove(sshot_file)
+        finally:
+            os.rmdir(tempdir)
+    else:
+        g.run(fname)
+
+    exit(g.exit_code)
 
 if __name__=="__main__":
     main()
