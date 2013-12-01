@@ -12,7 +12,7 @@ $ pick_geometryy image.png
 
 The script shows a GUI window with given image. Drag mouse to select rectangular area on the image (selection is shown as a blue-white box).
 
-When done, press `Enter` or middle mosue key (mouse-1). Coordinates of the selected bow will be written to the stdout, in the format: 
+When done, press `Enter` or middle mouse key (mouse-1). Coordinates of the selected bow will be written to the stdout, in the format: 
 
 ```
 X:Y:WIDTH:HEIGHT
@@ -32,11 +32,11 @@ Options allow to modify program operation.
 
   Format string, allowing to override default format. Must be a string, containing one of the following placeholders:
  
-** {x1},{y1},{x2},{y2}: Replaced by corner coordinates.
-** {w},{h}: Replaced by box size.
-** {cx},{cy}: Replaced by the coordinates of the box center.
+  * `{x1}`,`{y1}`,`{x2}`,`{y2}`: Replaced by corner coordinates.
+  * `{w}`,`{h}`: Replaced by box size.
+  * `{cx}`,`{cy}`: Replaced by the coordinates of the box center.
 
-  Default format is "{x1}:{y1}:{w}:{h}".
+  Default format is `{x1}:{y1}:{w}:{h}`.
 
 * **-s PERCENT, --scale=PERCENT**
 
@@ -88,4 +88,4 @@ python.exe query-geometry <arguments...>
 
 Screenshot
 ----------
-![Screenshot][screenshot.png]
+![Screenshot](screenshot.png)
