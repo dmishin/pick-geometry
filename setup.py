@@ -13,7 +13,7 @@ setup(name='pick-geometry',
       author_email='shintyakov@gmail.com',
       url='https://github.com/dmishin/pick-geometry',
       packages=[],
-      scripts=['pick_geometry'],
+      scripts=['pick-geometry'],
       license='MIT',
       requires=["PIL",tkinter]
 )
