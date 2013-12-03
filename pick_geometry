@@ -36,49 +36,38 @@ def ffmpeg_make_screenshot( video_file, save_as, time=5.0, ffmpeg_executable="ff
         print("FFMPEG executable not found")
         raise
 
-class GUI:
+class GUIBase:
     def __init__(self):
-        self.point = self.point1 = None
         self.temp_objects=[]
-        self.format_str="{x1}:{y1}:{w}:{h}"
-        self.output = None
         self.scale = 1.0
         self.exit_code = 0
+        self.output = None
 
     def on_mouse(self, e):
-        self.point = (e.x, e.y)
+        pass
 
     def on_mouseup(self, e):
-        self.point1 = (e.x,e.y)
-        x1,y1,x2,y2 = self.get_box()
-        canvas = self.canvas
+        pass
+
+    def delete_temp_objects(self):
+        canvas_delete = self.canvas.delete
         for i in self.temp_objects:
-            canvas.delete(i)
-        self.temp_objects = tos = []
-        tos.append( canvas.create_rectangle(x1,y1,x2,y2,outline="blue") )
-        tos.append( canvas.create_rectangle(x1+1,y1+1,x2-1,y2-1,outline="white") )
+            canvas_delete(i)
+        self.temp_objects = []
 
     def on_cancel(self,e):
         """User cancelled selection"""
         self.exit_code=1
         self.root.quit()
 
-    def get_box(self):
-        if self.point is None: raise ValueError("No selection")
-        (x1,x2),(y1,y2) = map(sorted, zip(self.point, self.point1))
-        return x1,y1,x2,y2
+    def ready(self):
+        return True
 
     def format_result(self):
-        x1,y1,x2,y2 = (int(x/self.scale) for x in self.get_box())
-        return self.format_str.format( x1=x1, y1=y1, x2=x2, y2=y2, 
-                                       w=x2-x1, h=y2-y1, 
-                                       cx=(x2+x1)//2, cy=(y1+y2)//2)
-        
-    def has_selection(self):
-        return self.point is not None
+        return ""
 
     def on_ok(self,e):
-        if not self.has_selection(): return
+        if not self.ready(): return
         result = self.format_result()
         if self.output:
             with open(self.output, "w") as ofile:
@@ -114,8 +103,41 @@ class GUI:
 
         photoimage = ImageTk.PhotoImage(image=img)
         canvas.create_image(0, 0, anchor=NW, image=photoimage)
-
         t.mainloop()
+
+class BoxSelectGUI(GUIBase):
+    def __init__(self):
+        super(BoxSelectGUI,self).__init__()
+        self.point = self.point1 = None
+        self.format_str="{x1}:{y1}:{w}:{h}"
+        self.output = None
+
+    def on_mouse(self, e):
+        self.point = (e.x, e.y)
+
+    def on_mouseup(self, e):
+        self.point1 = (e.x,e.y)
+        x1,y1,x2,y2 = self.get_box()
+        canvas = self.canvas
+        self.delete_temp_objects()
+        tos = self.temp_objects
+        tos.append( canvas.create_rectangle(x1,y1,x2,y2,outline="blue") )
+        tos.append( canvas.create_rectangle(x1+1,y1+1,x2-1,y2-1,outline="white") )
+
+    def get_box(self):
+        if self.point is None: raise ValueError("No selection")
+        (x1,x2),(y1,y2) = map(sorted, zip(self.point, self.point1))
+        return x1,y1,x2,y2
+
+    def format_result(self):
+        x1,y1,x2,y2 = (int(x/self.scale) for x in self.get_box())
+        return self.format_str.format( x1=x1, y1=y1, x2=x2, y2=y2, 
+                                       w=x2-x1, h=y2-y1, 
+                                       cx=(x2+x1)//2, cy=(y1+y2)//2)
+        
+    def ready(self):
+        return self.point is not None
+
 
 
 def main():
@@ -155,7 +177,7 @@ def main():
     if options.scale > 10000:
         parser.error("Scale too big")
     
-    g = GUI()
+    g = BoxSelectGUI()
     if options.output:
         g.output = options.output
     if options.format:
