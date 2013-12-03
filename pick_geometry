@@ -110,7 +110,6 @@ class BoxSelectGUI(GUIBase):
         super(BoxSelectGUI,self).__init__()
         self.point = self.point1 = None
         self.format_str="{x1}:{y1}:{w}:{h}"
-        self.output = None
 
     def on_mouse(self, e):
         self.point = (e.x, e.y)
@@ -138,6 +137,35 @@ class BoxSelectGUI(GUIBase):
     def ready(self):
         return self.point is not None
 
+class PointSelectGUI(GUIBase):
+    def __init__(self):
+        super(PointSelectGUI,self).__init__()
+        self.point = None
+        self.format_str="{x}:{y}"
+
+    def on_mouse(self, e):
+        x,y = self.point = (e.x, e.y)
+        canvas = self.canvas
+        self.delete_temp_objects()
+        tos = self.temp_objects
+        def put3(x0,y0,x1,y1,dx,dy):
+            tos.append( canvas.create_line(x0,y0,x1,y1,fill="white") )
+            tos.append( canvas.create_line(x0+dx,y0+dy,x1+dx,y1+dy,fill="blue") )
+            tos.append( canvas.create_line(x0-dx,y0-dy,x1-dx,y1-dy,fill="blue") )
+
+        r1, r2 = 20, 4
+        put3(x-r1,y,x-r2,y,0,1)
+        put3(x+r1,y,x+r2,y,0,1)
+        put3(x,y-r1,x,y-r2,1,0)
+        put3(x,y+r1,x,y+r2,1,0)
+
+
+    def format_result(self):
+        x,y = (int(x/self.scale) for x in self.point)
+        return self.format_str.format( x=x, y=y )
+        
+    def ready(self):
+        return self.point is not None
 
 
 def main():
@@ -157,14 +185,17 @@ def main():
     parser.add_option("", "--ffmpeg", dest="ffmpeg_executable", default="ffmpeg", metavar="PATH",
                       help="Override path to the FFMPEG executable")
     parser.add_option("-f", "--format", dest="format",
-                      help="format string. Possible variables: "
+                      help="format string. Possible variables for BOX: "
                       "{x1},{y1},{x2},{y2}: corner coordinates, "
                       "{w},{h}: box size, "
                       "{cx},{cy}: center coordinates. "
-                      "Default is {x1}:{y1}:{w}:{h}", 
+                      "Default is {x1}:{y1}:{w}:{h}\n"
+                      "For points: {x},{y}", 
                       metavar="FMT")
     parser.add_option("-s", "--scale", dest="scale", default=100.0, type="float",
                       help="scale loaded image, in percents. Default is 100.", metavar="PERCENT")
+    parser.add_option("-T", "--type", dest="type", default="box",
+                      help="Type of the picker. Can be 'box' (b) or 'point' (p)", metavar="TYPE")
 
     (options, args) = parser.parse_args()
     
@@ -176,8 +207,16 @@ def main():
         parser.error("Bad scale, must be positive")
     if options.scale > 10000:
         parser.error("Scale too big")
-    
-    g = BoxSelectGUI()
+
+    try:
+        
+        g = { "box": BoxSelectGUI,
+              "b":   BoxSelectGUI,
+              "point": PointSelectGUI,
+              "p":   PointSelectGUI }[options.type.lower()]()
+    except KeyError:
+        parser.error("Unknown picker type: %s"%(options.type))
+
     if options.output:
         g.output = options.output
     if options.format:
